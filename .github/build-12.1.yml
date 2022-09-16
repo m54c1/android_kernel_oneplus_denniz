@@ -1,24 +1,37 @@
-name: "Build zalupa-kernel on 12.1"              # Description of the workflow.
+name: Build zalupa-kernel 12.1
+
 on:
   push:
-    branches: 12.1                                   # Branch to build.
-  workflow_dispatch:                                  # Allow to manually trigger workflow.
+    branches: [ 12.1 ]
+
 jobs:
   build:
-    name: "Build Dark Ages kernel"
     runs-on: ubuntu-latest
     steps:
-    - name: "Checkout kernel source"                  # Clone the kernel source.
+    - name: Checkout kernel source
       uses: actions/checkout@v2
-    - name: "Checkout zipper"                         # (OPTIONAL) Clone the AnyKernel3 template.
+
+    - name: Checkout zipper
       uses: actions/checkout@v2
       with:
-        repository: m54c1/AnyKernel3             # Your own AnyKernel3 repository.
-        path: zipper                                  # Clone to path "zipper", REQUIRED.
-    - name: "Android kernel build"                    # Build kernel with lemniskett/android-kernel-actions.
-      uses: m54c1/android-kernel-actions@master
+        repository: m54c1/AnyKernel3
+        path: zipper
+
+    - name: Android kernel build
+      uses: lemniskett/android-kernel-actions@master
+      id: build
+      env:
+        NAME: zalupa-kernel
       with:
-        arch: arm64                                   # Specify arch
-        compiler: gcc/9                               # Specify toolchain to use
-        defconfig: denniz_defconfig                    # Specify defconfig to use
-        image: Image.gz-dtb                           # Specify final build file
+        arch: arm64
+        compiler: gcc/10
+        defconfig: denniz_defconfig
+        image: Image.gz-dtb
+
+    - name: Release build
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.CHANNEL_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        message: Kernel is built!, took ${{ steps.build.outputs.elapsed_time }} seconds.
+        document: ${{ steps.build.outputs.outfile }}
